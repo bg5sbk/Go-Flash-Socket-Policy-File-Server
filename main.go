@@ -1,33 +1,45 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"time"
 )
 
 var (
-	request     = []byte("<policy-file-request/>\x00")
-	response    = []byte("<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\" /></cross-domain-policy>\x00")
-	requestLen  = len(request)
-	responseLen = len(response)
+	addr     = flag.String("addr", "0.0.0.0:843", "address")
+	file     = flag.String("file", "", "the socket policy file")
+	request  = []byte("<policy-file-request/>\x00")
+	response = []byte("<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\" /></cross-domain-policy>\x00")
 )
 
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:843")
+	flag.Parse()
 
-	if err != nil {
-		fmt.Println(err)
-		return
+	var err error
+	var lsn net.Listener
+
+	if *file != "" {
+		response, err = ioutil.ReadFile(*file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		response = append(response, 0)
 	}
 
-	defer listener.Close()
+	lsn, err = net.Listen("tcp", *addr)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println("=== Flash Socket Policy File Server ===")
 
 	for {
-		if conn, err := listener.Accept(); err == nil {
+		if conn, err := lsn.Accept(); err == nil {
 			go loop(conn)
 		}
 	}
@@ -38,9 +50,9 @@ func loop(conn net.Conn) {
 
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
 
-	buff := make([]byte, requestLen)
+	buff := make([]byte, len(request))
 
-	if n, err := io.ReadFull(conn, buff); err == nil && n == requestLen {
+	if n, err := io.ReadFull(conn, buff); err == nil && n == len(request) {
 		conn.Write(response)
 	}
 }
