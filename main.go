@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -36,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("=== Flash Socket Policy File Server ===")
+	log.Print("=== Flash Socket Policy File Server ===")
 
 	for {
 		if conn, err := lsn.Accept(); err == nil {
